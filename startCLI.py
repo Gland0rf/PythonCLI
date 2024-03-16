@@ -1,12 +1,11 @@
 import tkinter as tk
-from cryptography.fernet import Fernet
 import os
 import re
 import shutil
 import subprocess
 import json
 
-current_dir = "C:\Code Files\Python\Commandline"
+current_dir = "C:\\Users\\nicok\\Documents\\Github\\PythonCLI"
 
 def is_folder_present(parent_folder, target_folder):
     items = os.listdir(parent_folder)
@@ -24,7 +23,7 @@ open_file = None
 
 def on_submit(event=None):
     global command_count, current_dir, current_state, open_file
-    commands = ["cd", "ls", "exit", "cls", "clear", "mkdir", "createdir", "mkfile", "createfile", "rem", "remove", "read", "readfile", "edit", "editfile", "vol", "volume", "alias", "pwd", "mv", "move"]
+    commands = ["cd", "ls", "exit", "cls", "clear", "mkdir", "createdir", "mkfile", "createfile", "rmdir", "removedir", "read", "readfile", "edit", "nano", "editfile", "vol", "volume", "alias", "pwd", "mv", "move", "cp", "copyfile", "touch", "rm", "remove", "cat", "echo"]
     input_text = entry.get("1.0", tk.END).strip()
     parts = input_text.split(">", 1)
     result = parts[1] if len(parts) > 1 else ""
@@ -103,7 +102,7 @@ def on_submit(event=None):
                 os.mkdir(current_dir + "\\" + result[1])
                 edit_wdiget_text(f"Created folder {result[1]} in {current_dir}")
             except PermissionError:
-                edit_wdiget_text(f"Not enough permissions to create a directory in {current_dir}\. Start an elevated command prompt.")
+                edit_wdiget_text(f"Not enough permissions to create a directory in {current_dir}\\. Start an elevated command prompt.")
     elif result[0] == "mkfile" or result[0] == "createfile" or result[0] in aliases["mkfile"] or result[0] in aliases["createfile"]:
         if(len(result) < 2):
             edit_wdiget_text("Second arg missing (mkfile [new_file_name])")
@@ -112,8 +111,8 @@ def on_submit(event=None):
                 open(f"{current_dir}\\{result[1]}", "w")
                 edit_wdiget_text(f"Created file {result[1]} in {current_dir}")
             except PermissionError:
-                edit_wdiget_text(f"Not enough permissions to create a file in {current_dir}\. Start an elevated command prompt.")
-    elif result[0] == "rem" or result[0] == "remove" or result[0] in aliases["rem"] or result[0] in aliases["remove"]:
+                edit_wdiget_text(f"Not enough permissions to create a file in {current_dir}\\. Start an elevated command prompt.")
+    elif result[0] == "rmdir" or result[0] == "removedir" or result[0] in aliases["rmdir"] or result[0] in aliases["removedir"]:
         if(len(result) < 2):
             edit_wdiget_text("Second arg missing (rem [item_to_remove])")
         else:
@@ -121,7 +120,7 @@ def on_submit(event=None):
                 shutil.rmtree(result[1])
                 edit_wdiget_text(f"Removed item {result[1]} in {current_dir}")
             except PermissionError:
-                edit_wdiget_text(f"Not enough permissions to remove an item in {current_dir}\. Start an elevated command prompt.")
+                edit_wdiget_text(f"Not enough permissions to remove an item in {current_dir}\\. Start an elevated command prompt.")
             except FileNotFoundError:
                 edit_wdiget_text(f"Cannot find file: {result[1]}")
     elif result[0] == "read" or result[0] == "readfile"  or result[0] in aliases["read"] or result[0] in aliases["readfile"]:
@@ -140,13 +139,13 @@ def on_submit(event=None):
                 edit_wdiget_text(f"{output_str}")
             except FileNotFoundError:
                 edit_wdiget_text(f"Cannot find file: {result[1]}")
-    elif result[0] == "edit" or result[0] == "editfile"  or result[0] in aliases["edit"] or result[0] in aliases["editfile"]:
+    elif result[0] == "edit" or result[0] == "editfile" or result[0] == "nano" or result[0] in aliases["edit"] or result[0] in aliases["editfile"] or result[0] in aliases["nano"]:
         if(len(result) < 2):
             edit_wdiget_text("Second arg missing (edit [file_to_edit])")
         else:
             try:
                 entry.delete("1.0", tk.END)
-                entry.insert(tk.END, current_dir + "\> ")
+                entry.insert(tk.END, current_dir + "\\> ")
                 entry.config(state=tk.DISABLED)
                 
                 clear_widget(True)
@@ -162,7 +161,7 @@ def on_submit(event=None):
             except FileNotFoundError:
                 text_widget.config(state=tk.NORMAL)
                 text_widget.config(state=tk.DISABLED)
-                edit_wdiget_text("Cannot find file: {result[1]}")
+                edit_wdiget_text(f"Cannot find file: {result[1]}")
     elif result[0] == "vol" or result[0] == "volume" or result[0] in aliases["vol"]  or result[0] in aliases["volume"]:
         try:
             result = subprocess.run(['vol', 'C:'], shell=True, stdout=subprocess.PIPE, text=True, check=True)
@@ -296,33 +295,15 @@ def on_submit(event=None):
         if len(result) < 3:
             edit_wdiget_text("Syntax incorrect. mv <file_name/path> <new_path>")
         else:
-            old_path = result[1]
-            
             path = ""
             pass_path = True
             
-            if(result[1].startswith("\"")):
-                complete = ' '.join(result)
-                match = re.search(r'"(.*?)"', complete).group(1)
-                old_path = match
-                joined_data = ' '.join(result)
-                joined_data = joined_data.replace(f"\"{match}\"", "placeholder")
-                result = joined_data.split(" ")
+            old_path, result = get_path(result[1], result)
             
             if len(result) < 3:
                 edit_wdiget_text("Syntax incorrect. mv <file_name/path> <new_path>")
             else:
-                new_path = result[2]
-                
-                if(result[2].startswith("\"")):
-                    complete = ' '.join(result)
-                    match = re.search(r'"(.*?)"', complete)
-                    if match != None:
-                        match.group(1)
-                        new_path = match
-                        joined_data = ' '.join(result)
-                        joined_data = complete.replace(f"\"{match}\"", "placeholder")
-                        result = joined_data.split(" ")
+                new_path, result = get_path(result[2], result)
                 
                 if os.path.exists(old_path):
                     path = old_path
@@ -336,10 +317,98 @@ def on_submit(event=None):
                     if not os.path.exists(new_path):
                         edit_wdiget_text("Cannot find the folder to move the file to! Is the path correct?")
                     else:
+                        
                         shutil.move(path, new_path)
+                        
                         edit_wdiget_text("File moved!")
+    elif result[0] == "cp" or result[0] == "copyfile" or result[0] in aliases["cp"] or result[0] in aliases["copyfile"]:
+        #cp <old> <new>
+        if len(result) < 3:
+            edit_wdiget_text("Syntax incorrect. cp <file_name/path> <new_path>")
+        else:
             
+            path = ""
+            pass_path = True
             
+            old_path, result = get_path(result[1], result)
+            
+            if len(result) < 3:
+                edit_wdiget_text("Syntax incorrect. cp <file_name/path> <new_path>")
+            else:
+                new_path, result = get_path(result[2], result)
+                
+                if os.path.exists(old_path):
+                    path = old_path
+                elif os.path.exists(current_dir + "\\" + old_path):
+                    path = current_dir + "\\" + old_path
+                else:
+                    edit_wdiget_text("Cannot find the file to copy! Is the path correct?")
+                    pass_path = False
+                    
+                if pass_path:
+                    if not os.path.exists(new_path):
+                        edit_wdiget_text("Cannot find the folder to copy the file to! Is the path correct?")
+                    else:
+                        
+                        shutil.copy(path, new_path)
+                        
+                        edit_wdiget_text("File copied!")
+                        
+    elif result[0] == "touch" or result[0] in aliases["touch"]:
+        if len(result) < 2:
+            edit_wdiget_text("Syntax incorrect. touch <file_name>")
+        else:
+            file = open(f"{result[1]}", "w")
+            file.close()
+            edit_wdiget_text(f"Created file {result[1]} in {current_dir}")
+    elif result[0] == "rm" or result[0] == "remove" or result[0] in aliases["rm"] or result[0] in aliases["remove"]:
+        if len(result) < 2:
+            edit_wdiget_text("Syntax incorrect. rm <file_or_folder_name>")
+        else:
+            path, result = get_path(result[1], result)
+            
+            pass_path = True
+            if os.path.exists(path):
+                path_to_delete = path
+            elif os.path.exists(current_dir + "\\" + path):
+                path_to_delete = current_dir + "\\" + path
+            else:
+                edit_wdiget_text("Cannot find the file/folder to delete! Is the path correct?")
+                pass_path = False
+                
+            if pass_path:
+                if os.path.isfile(path_to_delete):
+                    os.remove(path_to_delete)
+                elif os.path.isdir(path_to_delete):
+                    os.rmdir(path_to_delete)
+                edit_wdiget_text(f"{path_to_delete} was deleted!")
+                
+    elif result[0] == "cat" or result[0] in aliases["cat"]:
+        if len(result) < 2:
+            edit_wdiget_text("Syntax incorrect. Second arg missing (cat [file_to_view])")
+        else:
+            try:
+                path = get_path(result[1], result)
+                text_widget.config(state=tk.NORMAL)
+                file = open(f"{current_dir}\\{path}", "r")
+                lines = file.readlines()
+
+                text_widget.insert(tk.END, "\n")
+                for line in lines:
+                    text_widget.insert(tk.END, line)
+                    
+                text_widget.config(state=tk.DISABLED)
+
+            except FileNotFoundError:
+                text_widget.config(state=tk.NORMAL)
+                text_widget.config(state=tk.DISABLED)
+                edit_wdiget_text(f"Cannot find file: {result[1]}")
+    elif result[0] == "echo" or result[0] in aliases["echo"]:
+        if len(result) < 2:
+            message = ""
+        else:
+            message = ' '.join(result[1:])
+        edit_wdiget_text(message)
     else:
         edit_wdiget_text(f"Unknown command: {result[0]}")
 
@@ -349,7 +418,20 @@ def on_submit(event=None):
 
     # Restore the initial text after processing
     entry.delete("1.0", tk.END)
-    entry.insert(tk.END, current_dir + "\> ")
+    entry.insert(tk.END, current_dir + "\\> ")
+    
+def get_path(path, result):
+    print(f"{result} start")
+    new_path = path
+    if(path.startswith("\"")):
+        complete = ' '.join(result)
+        match = re.search(r'"(.*?)"', complete).group(1)
+        new_path = match
+        joined_data = ' '.join(result)
+        joined_data = joined_data.replace(f"\"{match}\"", "placeholder")
+        result = joined_data.split(" ")
+    print(result, new_path)
+    return new_path, result
 
 def remove_trailing_empty_lines(lines):
     print(lines)
@@ -361,7 +443,7 @@ def remove_trailing_empty_lines(lines):
     return '\n'.join(lines)
 
 def restore_initial_text():
-    initial_text = current_dir + "\> "
+    initial_text = current_dir + "\\> "
     current_text = entry.get("1.0", tk.END).strip()
 
     if not current_text.startswith(initial_text):
@@ -372,7 +454,7 @@ def restore_initial_text():
 
 def prevent_editing(event):
     current_index = entry.index(tk.INSERT)
-    initial_text_length = len(current_dir + "\> ")
+    initial_text_length = len(current_dir + "\\> ")
 
     if int(current_index.split('.')[1]) < initial_text_length:
         return 'break'
